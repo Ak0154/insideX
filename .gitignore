@@ -1,0 +1,64 @@
+# ----------------
+# Python
+# ----------------
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# ----------------
+# Virtual Environment
+# ----------------
+.venv/
+venv/
+env/
+ENV/
+*.env
+*.venv
+
+# ----------------
+# IDE / Editors
+# ----------------
+.vscode/
+.idea/
+*.swp
+*.swo
+*.DS_Store
+
+# ----------------
+# Logs / Cache
+# ----------------
+*.log
+*.out
+*.pid
+*.gz
+.cache/
+.pytest_cache/
+.mypy_cache/
+.dmypy.json
+coverage/
+htmlcov/
+
+# ----------------
+# Pathway / Data
+# ----------------
+documents/
+*.md
+
+# ----------------
+# API Keys & Config
+# ----------------
+.env
+*.env.local
+secrets.json
+
+# ----------------
+# OS Files
+# ----------------
+Thumbs.db
+.DS_Store

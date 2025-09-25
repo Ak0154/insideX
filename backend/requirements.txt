@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pathway[all]
+requests
+yfinance
+sentence-transformers
+anthropic
+python-dotenv
+websockets
