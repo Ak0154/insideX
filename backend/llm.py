@@ -247,3 +247,51 @@ def analyze_stock(stock: str):
         "threat_reason": threat_reason,
     }
 
+def ask_followup(stock: str, user_question: str, previous_report: dict = None):
+    """
+    Ask a follow-up question to Claude about a stock, using previous analysis + memory context.
+    `previous_report` should ideally be the dict returned from analyze_stock(stock).
+    """
+    try:
+        # Retrieve memory context
+        neighbors = search(stock, k=5)
+    except Exception:
+        neighbors = []
+
+    memory_context = "\n".join(str(n) for n in neighbors)
+
+    # If previous report not passed, build a minimal one
+    previous_report = previous_report or {}
+
+    # Build the query prompt
+    query = f"""
+Stock: {stock}
+
+Previous analysis:
+- Perplexity: {previous_report.get("perplexity_analysis")}
+- Final Report: {previous_report.get("final_report")}
+- Threat Score: {previous_report.get("threat_score")}
+- Threat Reason: {previous_report.get("threat_reason")}
+
+Memory Context from Pathway:
+{memory_context}
+
+User Question: {user_question}
+
+Answer clearly and concisely. 
+If it's about market metrics (like all-time high), answer directly.
+If it's anomaly-related, use the provided context and cite sources if possible.
+"""
+
+    try:
+        response = anthropic_client.messages.create(
+            model="claude-3-5-sonnet-20240620",
+            max_tokens=400,
+            temperature=0.3,
+            system="You are a financial assistant. Always answer clearly and concisely with context if available.",
+            messages=[{"role": "user", "content": query}]
+        )
+        return response.content[0].text
+    except Exception as e:
+        print(f"❌ Claude follow-up failed: {e}")
+        return "Error: Could not answer follow-up question."
