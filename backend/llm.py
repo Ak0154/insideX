@@ -5,7 +5,8 @@ from anthropic import Anthropic
 from .vector_store import add_document, search, preload_from_mongo
 from .db import save_news, get_news
 from .threat_model import evaluate_threat
-
+from .vector_store import add_document, store_full_doc
+from .vector_store import add_document, search, store_full_doc, preload_from_local
 # ✅ Pathway vector store
 from .vector_store import add_document, search  
 
@@ -54,6 +55,20 @@ def analyze_with_perplexity(stock: str, query: str, timeout: int = 90):
 
         # ✅ Store into Pathway memory
         add_document(stock, analysis)
+
+        # ✅ Store full raw JSON locally
+        try:
+            from .vector_store import store_full_doc
+            store_full_doc(stock, result)
+        except Exception as e:
+            print(f"⚠️ Failed to save local JSON doc: {e}")
+
+        # ✅ Store into MongoDB
+        try:
+            from .db import save_news  # helper function we’ll define
+            save_news(stock, analysis, result)
+        except Exception as e:
+            print(f"⚠️ Failed to save to MongoDB: {e}")
 
         return analysis
 
@@ -152,14 +167,21 @@ def analyze_with_perplexity(stock: str, query: str, timeout: int = 90):
         )
         response.raise_for_status()
         result = response.json()
+
+        # ✅ Extract short analysis text
         analysis = result["choices"][0]["message"]["content"]
 
-        # Store into Pathway memory + Mongo via add_document
+        # ✅ Save full raw Perplexity response locally
+        try:
+            store_full_doc(stock, result)   # <- new function in vector_store.py
+        except Exception as e:
+            print(f"⚠️ Failed to save raw doc locally: {e}")
+
+        # ✅ Store into Pathway memory + Mongo
         try:
             add_document(stock, analysis)
-        except Exception:
-            # don't fail the whole pipeline if storing fails
-            pass
+        except Exception as e:
+            print(f"⚠️ Failed to add doc to Pathway/Mongo: {e}")
 
         return analysis
 
@@ -172,6 +194,7 @@ def analyze_with_perplexity(stock: str, query: str, timeout: int = 90):
     except Exception as e:
         print(f"❌ Unexpected error with Perplexity: {e}")
         return None
+
 
 
 def analyze_with_claude(stock: str, analysis: str = ""):

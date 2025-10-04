@@ -8,7 +8,13 @@ from datetime import datetime
 from pymongo import MongoClient
 import os
 from dotenv import load_dotenv
+import json
+from datetime import datetime
+import os, json, time
+from .embeddings import embed_text
 
+DOCS_DIR = "stored_docs"
+os.makedirs(DOCS_DIR, exist_ok=True)
 # ------------------ MongoDB Setup ------------------
 load_dotenv()
 
@@ -162,3 +168,64 @@ def preload_from_mongo(stock: str, limit: int = 20):
             "embedding": vector
         }])
     pw.run()
+
+DOCS_DIR = "stored_docs"
+os.makedirs(DOCS_DIR, exist_ok=True)
+
+def store_full_doc(stock: str, doc: dict):
+    """
+    Save the entire news document locally as JSON.
+    Filename format: stored_docs/{stock}_{timestamp}.json
+    """
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename = f"{DOCS_DIR}/{stock}_{timestamp}.json"
+
+    try:
+        with open(filename, "w", encoding="utf-8") as f:
+            json.dump(doc, f, ensure_ascii=False, indent=2)
+        print(f"📄 Saved full document: {filename}")
+    except Exception as e:
+        print(f"❌ Failed to save full document: {e}")
+
+def store_full_doc(stock: str, raw_response: dict):
+    """Save full Perplexity response as JSON locally."""
+    timestamp = time.strftime("%Y%m%d_%H%M%S")
+    filename = f"{stock}_{timestamp}.json"
+    filepath = os.path.join(DOCS_DIR, filename)
+
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(raw_response, f, indent=2)
+
+    print(f"📁 Saved full doc: {filepath}")
+    return filepath
+
+
+def preload_from_local(stock: str, limit: int = 5):
+    """
+    Reload last N locally saved JSON docs into Pathway memory.
+    Only extracts 'analysis' text from stored JSON.
+    """
+    files = sorted(
+        [f for f in os.listdir(DOCS_DIR) if f.startswith(stock)],
+        reverse=True
+    )[:limit]
+
+    for f in files:
+        path = os.path.join(DOCS_DIR, f)
+        try:
+            with open(path, "r", encoding="utf-8") as infile:
+                raw = json.load(infile)
+                analysis = raw["choices"][0]["message"]["content"]
+
+                # embed + push into Pathway
+                vector = embed_text(analysis)
+                subject.send([{
+                    "id": f,  # filename as ID
+                    "content": analysis,
+                    "embedding": vector
+                }])
+        except Exception as e:
+            print(f"⚠️ Failed to preload {f}: {e}")
+
+    pw.run()
+    print(f"✅ Preloaded {len(files)} local docs into Pathway for {stock}")
