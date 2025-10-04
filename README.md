@@ -186,7 +186,3 @@ Open a PR or start a discussion under Issues.
 
 MIT License © 2025 insideX
 
----
-
-👉 This README is **ready-to-use** for GitHub.
-Would you like me to also generate a **`requirements.txt`** file so anyone can install dependencies in one go?
